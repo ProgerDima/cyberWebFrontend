@@ -26,13 +26,33 @@ const Tournaments = () => {
     fetch("http://localhost:3000/tournaments")
       .then(res => res.json())
       .then(data => {
-        setTournaments(data);
+        // Фільтруємо турніри з завершеною реєстрацією
+        const now = new Date();
+        const validTournaments = data.filter(tournament => {
+          const registrationEnd = tournament.registration_end ? new Date(tournament.registration_end) : null;
+          const isRegistrationExpired = registrationEnd && now > registrationEnd;
+          
+          // Показуємо тільки ті турніри, де реєстрація ще не завершена або турнір вже активний/завершений
+          return !isRegistrationExpired || tournament.status !== "запланований";
+        });
+        
+        setTournaments(validTournaments);
         setLoading(false);
       });
   }, []);
 
   // Фільтрація
   const filteredTournaments = tournaments.filter(t => {
+    // Перевіряємо чи не закінчився час реєстрації
+    const now = new Date();
+    const registrationEnd = t.registration_end ? new Date(t.registration_end) : null;
+    const isRegistrationExpired = registrationEnd && now > registrationEnd;
+    
+    // Не показуємо турніри з завершеною реєстрацією
+    if (isRegistrationExpired && t.status?.toLowerCase() === "запланований") {
+      return false;
+    }
+    
     const matchesSearch = t.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" ||
