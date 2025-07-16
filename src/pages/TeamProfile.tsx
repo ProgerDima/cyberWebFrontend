@@ -12,6 +12,11 @@ function getUserIdFromToken() {
   }
 }
 
+function isUserAuthenticated() {
+  const token = localStorage.getItem("token");
+  return !!token;
+}
+
 const TeamProfile = () => {
   const { teamId } = useParams();
   const [team, setTeam] = useState<any>(null);
@@ -122,8 +127,8 @@ const TeamProfile = () => {
   };
 
   const myId = getUserIdFromToken();
-  const isCaptain = team && Array.isArray(team.members) && team.members.some((m: any) => m.id === myId && m.role === "Капітан");
-  const isMember = team && Array.isArray(team.members) && team.members.some((m: any) => m.id === myId);
+  const isCaptain = isUserAuthenticated() && team && Array.isArray(team.members) && team.members.some((m: any) => m.id === myId && m.role === "Капітан");
+  const isMember = isUserAuthenticated() && team && Array.isArray(team.members) && team.members.some((m: any) => m.id === myId);
 
   useEffect(() => {
     if (!teamId) return;
@@ -160,7 +165,7 @@ const TeamProfile = () => {
             <div className="text-4xl font-extrabold text-white mb-1 tracking-wide">{team.teamName}</div>
             <div className="text-[#bfc9e0] text-sm">{team.members.length} member</div>
           </div>
-          {isCaptain && !isFullForAnyTournament && (
+          {isCaptain && !isFullForAnyTournament && isUserAuthenticated() && (
             <button
               className="ml-auto bg-[#13b7e6] hover:bg-[#0fa1c7] text-white px-6 py-2 rounded font-bold transition"
               onClick={() => setShowInviteModal(true)}
@@ -169,14 +174,20 @@ const TeamProfile = () => {
             </button>
           )}
           {!team.is_private && !isMember && !isFullForAnyTournament && (
-            <button
-              className="ml-auto bg-[#13b7e6] hover:bg-[#0fa1c7] text-white px-6 py-2 rounded font-bold transition"
-              onClick={handleJoinTeam}
-            >
-              Приєднатися до команди
-            </button>
+            isUserAuthenticated() ? (
+              <button
+                className="ml-auto bg-[#13b7e6] hover:bg-[#0fa1c7] text-white px-6 py-2 rounded font-bold transition"
+                onClick={handleJoinTeam}
+              >
+                Приєднатися до команди
+              </button>
+            ) : (
+              <div className="ml-auto text-yellow-500 text-sm bg-yellow-500/10 px-4 py-2 rounded-lg border border-yellow-500/20">
+                Авторизуйтесь щоб приєднатися
+              </div>
+            )
           )}
-          {isMember && !isCaptain && (
+          {isMember && !isCaptain && isUserAuthenticated() && (
             <button
               className="ml-auto bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-bold transition"
               onClick={handleLeaveTeam}

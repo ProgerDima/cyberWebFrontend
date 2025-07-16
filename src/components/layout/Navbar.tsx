@@ -118,9 +118,10 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    localStorage.removeItem("role");
     setIsAuthenticated(false);
     setUsername("");
-    navigate("/login");
+    navigate("/"); // Перенаправляємо на головну сторінку замість логіну
   };
 
   return (

@@ -59,6 +59,11 @@ function getUserIdFromToken() {
   }
 }
 
+function isUserAuthenticated() {
+  const token = localStorage.getItem("token");
+  return !!token;
+}
+
 const TournamentAdminPanel = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -477,17 +482,23 @@ const TournamentAdminPanel = () => {
               </div>
             )
           ) : (
-            // Кнопка "Війти в турнір"
+            // Кнопка "Війти в турнір" або повідомлення про авторизацію
             <div className="flex justify-end">
-              <Button
-                variant="default"
-                onClick={() => {
-                  setShowJoinModal(true);
-                  fetchCaptainTeams();
-                }}
-              >
-                Війти в турнір
-              </Button>
+              {isUserAuthenticated() ? (
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    setShowJoinModal(true);
+                    fetchCaptainTeams();
+                  }}
+                >
+                  Війти в турнір
+                </Button>
+              ) : (
+                <div className="text-yellow-500 text-sm bg-yellow-500/10 px-4 py-2 rounded-lg border border-yellow-500/20">
+                  Щоб приєднатися до турніру, потрібно авторизуватись
+                </div>
+              )}
             </div>
           )}
         </div>

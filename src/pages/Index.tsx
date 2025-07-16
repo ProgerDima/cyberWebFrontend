@@ -1,19 +1,11 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import HeroSection from "@/components/home/HeroSection";
 import FeaturedTournaments from "@/components/home/FeaturedTournaments";
 import HowItWorks from "@/components/home/HowItWorks";
 
 const Index = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login"); // Перенаправлення на логін, якщо користувач не авторизований
-    }
-  }, [navigate]);
-
+  // Видалили автоматичне перенаправлення - головна сторінка має бути доступна для всіх
+  
   return (
     <div className="page-transition-wrapper">
       <HeroSection />
