@@ -552,7 +552,14 @@ const AdminPanel = () => {
                   {filteredUsers.length > 0 ? (
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link 
+                            to={`/profile/${user.id}`}
+                            className="text-blue-400 hover:text-blue-300 hover:underline"
+                          >
+                            {user.username}
+                          </Link>
+                        </TableCell>
                         <TableCell>{getRoleBadge(user.role)}</TableCell>
                         <TableCell>{getBlockedBadge(user.is_blocked)}</TableCell>
                         <TableCell>{new Date(user.created_at).toLocaleString()}</TableCell>
@@ -560,7 +567,14 @@ const AdminPanel = () => {
                           {user.tournaments && user.tournaments.length > 0 ? (
                             <ul className="space-y-1">
                               {user.tournaments.map((tournament) => (
-                                <li key={tournament.id}>{tournament.name}</li>
+                                <li key={tournament.id}>
+                                  <Link 
+                                    to={`/tournaments/${tournament.id}`}
+                                    className="text-blue-400 hover:text-blue-300 hover:underline text-sm"
+                                  >
+                                    {tournament.name}
+                                  </Link>
+                                </li>
                               ))}
                             </ul>
                           ) : (
@@ -627,9 +641,23 @@ const AdminPanel = () => {
                     return filteredTeams.length > 0 ? (
                       filteredTeams.map((team) => (
                         <TableRow key={team.id}>
-                          <TableCell>{team.teamName}</TableCell>
                           <TableCell>
-                            {team.members?.find((m) => m.role === "Капітан")?.name || "—"}
+                            <Link 
+                              to={`/teams/${team.id}`}
+                              className="text-blue-400 hover:text-blue-300 hover:underline"
+                            >
+                              {team.teamName}
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            {team.members?.find((m) => m.role === "Капітан")?.name ? (
+                              <Link 
+                                to={`/profile/${team.members.find((m) => m.role === "Капітан")?.id}`}
+                                className="text-blue-400 hover:text-blue-300 hover:underline"
+                              >
+                                {team.members.find((m) => m.role === "Капітан")?.name}
+                              </Link>
+                            ) : "—"}
                           </TableCell>
                           <TableCell>{team.members?.length || 0}</TableCell>
                           <TableCell>
