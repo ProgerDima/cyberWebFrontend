@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,7 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("tournaments");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [teamFilter, setTeamFilter] = useState("all"); // "all", "public", "private"
   const [tournamentData, setTournamentData] = useState([]);
   const [userData, setUserData] = useState([]);
   const [teamData, setTeamData] = useState([]);
@@ -101,6 +102,7 @@ const AdminPanel = () => {
     const fetchTeams = async () => {
       try {
         setLoading(true);
+        console.log('Fetching teams from:', `${API_URL}/teams`);
         const response = await fetch(`${API_URL}/teams`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -146,8 +148,12 @@ const AdminPanel = () => {
   });
 
   const filteredTeams = teamData.filter((team) => {
-    const matchesSearch = team.teamName?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    const matchesSearch = searchQuery === '' || team.teamName?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = teamFilter === "all" || 
+      (teamFilter === "public" && team.is_public) ||
+      (teamFilter === "private" && !team.is_public);
+    
+    return matchesSearch && matchesFilter;
   });
 
   const getStatusBadge = (status) => {
@@ -442,6 +448,19 @@ const AdminPanel = () => {
                     )}
                   </SelectContent>
                 </Select>
+                
+                {activeTab === "teams" && (
+                  <Select value={teamFilter} onValueChange={setTeamFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Team Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Teams</SelectItem>
+                      <SelectItem value="public">Public</SelectItem>
+                      <SelectItem value="private">Private</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
           </div>
@@ -481,7 +500,14 @@ const AdminPanel = () => {
                   {filteredTournaments.length > 0 ? (
                     filteredTournaments.map((tournament) => (
                       <TableRow key={tournament.id}>
-                        <TableCell>{tournament.name}</TableCell>
+                        <TableCell>
+                          <Link 
+                            to={`/tournaments/${tournament.id}`}
+                            className="text-blue-400 hover:text-blue-300 hover:underline"
+                          >
+                            {tournament.name}
+                          </Link>
+                        </TableCell>
                         <TableCell>{tournament.discipline}</TableCell>
                         <TableCell>{tournament.created_by}</TableCell>
                         <TableCell>{new Date(tournament.created_at).toLocaleString()}</TableCell>
@@ -490,11 +516,7 @@ const AdminPanel = () => {
                           <Button 
                             variant="destructive" 
                             size="sm"
-                            onClick={() => {
-                              setSelectedItem(tournament);
-                              setDeleteType("tournament");
-                              setShowDeleteModal(true);
-                            }}
+                            onClick={() => handleDeleteTournament(tournament.id)}
                             disabled={loading}
                           >
                             Delete
@@ -553,13 +575,24 @@ const AdminPanel = () => {
                             variant={user.is_blocked ? "outline" : "destructive"}
                             size="sm"
                             onClick={() => {
-                              setSelectedUser(user);
-                              setShowBlockModal(true);
+                              if (user.is_blocked) {
+                                handleUnblockUser(user.id);
+                              } else {
+                                handleBlockUser(user.id);
+                              }
                             }}
                             disabled={loading}
                           >
                             <ShieldOff className="w-4 h-4 mr-1" />
                             {user.is_blocked ? "Unblock" : "Block"}
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={loading}
+                          >
+                            Delete
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -573,94 +606,7 @@ const AdminPanel = () => {
                   )}
                 </TableBody>
               </Table>
-              {/* Модальне вікно блокування/розблокування */}
-              <Modal 
-                open={showBlockModal} 
-                onClose={() => {
-                  setShowBlockModal(false);
-                  setSelectedUser(null);
-                }}
-              >
-                <div className="p-6">
-                  <h2 className="text-lg font-bold mb-4">
-                    {selectedUser?.is_blocked ? "Розблокування користувача" : "Блокування користувача"}
-                  </h2>
-                  <p className="mb-6">
-                    Ви впевнені, що хочете {selectedUser?.is_blocked ? "розблокувати" : "заблокувати"} користувача <b>{selectedUser?.username}</b>?
-                  </p>
-                  <div className="flex gap-4">
-                    <Button
-                      variant={selectedUser?.is_blocked ? "default" : "destructive"}
-                      onClick={() => {
-                        if (selectedUser?.is_blocked) {
-                          handleUnblockUser(selectedUser.id);
-                        } else {
-                          handleBlockUser(selectedUser.id);
-                        }
-                      }}
-                      disabled={loading}
-                    >
-                      {selectedUser?.is_blocked ? "Так, розблокувати" : "Так, заблокувати"}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setShowBlockModal(false);
-                        setSelectedUser(null);
-                      }}
-                      disabled={loading}
-                    >
-                      Відмінити
-                    </Button>
-                  </div>
-                </div>
-              </Modal>
-
-              {/* Модальне вікно видалення */}
-              <Modal 
-                open={showDeleteModal} 
-                onClose={() => {
-                  setShowDeleteModal(false);
-                  setSelectedItem(null);
-                  setDeleteType("");
-                }}
-              >
-                <div className="p-6">
-                  <h2 className="text-lg font-bold mb-4">
-                    Видалення {deleteType === "tournament" ? "турніру" : "команди"}
-                  </h2>
-                  <p className="mb-6">
-                    Ви впевнені, що хочете видалити {deleteType === "tournament" ? "турнір" : "команду"} <b>{selectedItem?.name || selectedItem?.teamName}</b>? 
-                    Цю дію неможливо відмінити.
-                  </p>
-                  <div className="flex gap-4">
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        if (deleteType === "tournament") {
-                          handleDeleteTournament(selectedItem.id);
-                        } else if (deleteType === "team") {
-                          handleDeleteTeam(selectedItem.id);
-                        }
-                      }}
-                      disabled={loading}
-                    >
-                      Так, видалити
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setShowDeleteModal(false);
-                        setSelectedItem(null);
-                        setDeleteType("");
-                      }}
-                      disabled={loading}
-                    >
-                      Відмінити
-                    </Button>
-                  </div>
-                </div>
-              </Modal>
+              {/* Модальні вікна видалені для прямого видалення */}
             </div>
           )}
           {!loading && activeTab === "teams" && (
@@ -671,46 +617,50 @@ const AdminPanel = () => {
                     <TableHead>Назва команди</TableHead>
                     <TableHead>Капітан</TableHead>
                     <TableHead>Учасники</TableHead>
+                    <TableHead>Тип</TableHead>
                     <TableHead>Створена</TableHead>
                     <TableHead className="text-right">Дії</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTeams.length > 0 ? (
-                    filteredTeams.map((team) => (
-                      <TableRow key={team.id}>
-                        <TableCell>{team.teamName}</TableCell>
-                        <TableCell>
-                          {team.members?.find((m) => m.role === "Капітан")?.name || "—"}
-                        </TableCell>
-                        <TableCell>{team.members?.length || 0}</TableCell>
-                        <TableCell>{new Date(team.created_at).toLocaleString()}</TableCell>
-                        <TableCell className="text-right flex gap-2 justify-end">
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedItem(team);
-                              setDeleteType("team");
-                              setShowDeleteModal(true);
-                            }}
-                            disabled={loading}
-                          >
-                            Delete
-                          </Button>
+                  {(() => {
+                    return filteredTeams.length > 0 ? (
+                      filteredTeams.map((team) => (
+                        <TableRow key={team.id}>
+                          <TableCell>{team.teamName}</TableCell>
+                          <TableCell>
+                            {team.members?.find((m) => m.role === "Капітан")?.name || "—"}
+                          </TableCell>
+                          <TableCell>{team.members?.length || 0}</TableCell>
+                          <TableCell>
+                            <Badge variant={team.is_public ? "default" : "secondary"}>
+                              {team.is_public ? "Публічна" : "Приватна"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{new Date(team.created_at).toLocaleString()}</TableCell>
+                          <TableCell className="text-right flex gap-2 justify-end">
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleDeleteTeam(team.id)}
+                              disabled={loading}
+                            >
+                              Delete
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6">
+                          No teams found
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6">
-                        No teams found
-                      </TableCell>
-                    </TableRow>
-                  )}
+                    );
+                  })()}
                 </TableBody>
               </Table>
             </div>
