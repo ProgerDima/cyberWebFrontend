@@ -32,7 +32,13 @@ const AdminPanel = () => {
   const [userData, setUserData] = useState([]);
   const [teamData, setTeamData] = useState([]);
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [modalType, setModalType] = useState(""); // "edit", "create"
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -42,46 +48,76 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
+        setLoading(true);
         const response = await fetch(`${API_URL}/tournaments`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         setTournamentData(Array.isArray(data) ? data : []);
+        setError("");
       } catch (error) {
         setTournamentData([]);
+        setError("Помилка завантаження турнірів");
         console.error("Error fetching tournaments:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     const fetchUsers = async () => {
       try {
+        setLoading(true);
         const response = await fetch(`${API_URL}/users`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         setUserData(Array.isArray(data) ? data : []);
+        setError("");
       } catch (error) {
         setUserData([]);
+        setError("Помилка завантаження користувачів");
         console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     const fetchTeams = async () => {
       try {
+        setLoading(true);
         const response = await fetch(`${API_URL}/teams`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         setTeamData(Array.isArray(data) ? data : []);
+        setError("");
       } catch (error) {
         setTeamData([]);
+        setError("Помилка завантаження команд");
         console.error("Error fetching teams:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -138,26 +174,177 @@ const AdminPanel = () => {
     }
   };
 
+  const getBlockedBadge = (isBlocked) => {
+    return isBlocked ? (
+      <Badge className="bg-red-500 hover:bg-red-600">Заблокований</Badge>
+    ) : (
+      <Badge className="bg-green-500 hover:bg-green-600">Активний</Badge>
+    );
+  };
+
   // Блокування користувача
   const handleBlockUser = async (userId) => {
     try {
-      await fetch(`${API_URL}/users/${userId}/block`, {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/users/${userId}/block`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       setShowBlockModal(false);
+      setSelectedUser(null);
+      
       // Оновити список користувачів
-      const response = await fetch(`${API_URL}/users`, {
+      const usersResponse = await fetch(`${API_URL}/users`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      const data = await response.json();
-      setUserData(data);
+      const data = await usersResponse.json();
+      setUserData(Array.isArray(data) ? data : []);
+      setError("");
     } catch (error) {
-      alert("Помилка блокування користувача");
+      setError("Помилка блокування користувача");
+      console.error("Error blocking user:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Розблокування користувача
+  const handleUnblockUser = async (userId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/users/${userId}/unblock`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      setShowBlockModal(false);
+      setSelectedUser(null);
+      
+      // Оновити список користувачів
+      const usersResponse = await fetch(`${API_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await usersResponse.json();
+      setUserData(Array.isArray(data) ? data : []);
+      setError("");
+    } catch (error) {
+      setError("Помилка розблокування користувача");
+      console.error("Error unblocking user:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Видалення турніру (без підтвердження)
+  const handleDeleteTournament = async (tournamentId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/tournaments/${tournamentId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Оновити список турнірів
+      const tournamentsResponse = await fetch(`${API_URL}/tournaments`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await tournamentsResponse.json();
+      setTournamentData(Array.isArray(data) ? data : []);
+      setError("");
+    } catch (error) {
+      setError("Помилка видалення турніру");
+      console.error("Error deleting tournament:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Видалення команди (без підтвердження)
+  const handleDeleteTeam = async (teamId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/teams/${teamId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Оновити список команд
+      const teamsResponse = await fetch(`${API_URL}/teams`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await teamsResponse.json();
+      setTeamData(Array.isArray(data) ? data : []);
+      setError("");
+    } catch (error) {
+      setError("Помилка видалення команди");
+      console.error("Error deleting team:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Видалення користувача (без підтвердження)
+  const handleDeleteUser = async (userId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Оновити список користувачів
+      const usersResponse = await fetch(`${API_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await usersResponse.json();
+      setUserData(Array.isArray(data) ? data : []);
+      setError("");
+    } catch (error) {
+      setError("Помилка видалення користувача");
+      console.error("Error deleting user:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,6 +398,13 @@ const AdminPanel = () => {
             </div>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-8">
+              <p className="text-red-400">{error}</p>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="bg-card/30 backdrop-blur-md border border-border rounded-lg p-4 mb-8">
             <div className="flex flex-col md:flex-row gap-4">
@@ -252,14 +446,24 @@ const AdminPanel = () => {
 
           {/* Add button */}
           <div className="flex justify-end mb-4">
-            <Button className="bg-gradient-to-r from-esports-purple to-esports-blue hover:opacity-90 transition-opacity">
+            <Button 
+              className="bg-gradient-to-r from-esports-purple to-esports-blue hover:opacity-90 transition-opacity"
+              disabled={loading}
+            >
               <Plus className="mr-2 h-4 w-4" />
               {activeTab === "tournaments" ? "Add Tournament" : "Add User"}
             </Button>
           </div>
 
+          {/* Loading indicator */}
+          {loading && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-esports-blue"></div>
+            </div>
+          )}
+
           {/* Tables */}
-          {activeTab === "tournaments" && (
+          {!loading && activeTab === "tournaments" && (
             <div className="bg-card/30 backdrop-blur-md border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
@@ -279,8 +483,20 @@ const AdminPanel = () => {
                         <TableCell>{tournament.discipline}</TableCell>
                         <TableCell>{tournament.created_by}</TableCell>
                         <TableCell>{new Date(tournament.created_at).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right flex gap-2 justify-end">
                           <Button variant="outline" size="sm">Edit</Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedItem(tournament);
+                              setDeleteType("tournament");
+                              setShowDeleteModal(true);
+                            }}
+                            disabled={loading}
+                          >
+                            Delete
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -295,13 +511,14 @@ const AdminPanel = () => {
               </Table>
             </div>
           )}
-          {activeTab === "users" && (
+          {!loading && activeTab === "users" && (
             <div className="bg-card/30 backdrop-blur-md border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Username</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Registration Date</TableHead>
                     <TableHead>Tournaments</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -313,6 +530,7 @@ const AdminPanel = () => {
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.username}</TableCell>
                         <TableCell>{getRoleBadge(user.role)}</TableCell>
+                        <TableCell>{getBlockedBadge(user.is_blocked)}</TableCell>
                         <TableCell>{new Date(user.created_at).toLocaleString()}</TableCell>
                         <TableCell>
                           {user.tournaments && user.tournaments.length > 0 ? (
@@ -330,51 +548,120 @@ const AdminPanel = () => {
                             Edit
                           </Button>
                           <Button
-                            variant="destructive"
+                            variant={user.is_blocked ? "outline" : "destructive"}
                             size="sm"
                             onClick={() => {
                               setSelectedUser(user);
                               setShowBlockModal(true);
                             }}
+                            disabled={loading}
                           >
                             <ShieldOff className="w-4 h-4 mr-1" />
-                            Block
+                            {user.is_blocked ? "Unblock" : "Block"}
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6">
+                      <TableCell colSpan={6} className="text-center py-6">
                         No users found
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-              {/* Модалка блокування */}
-              {showBlockModal && selectedUser && (
-                <Modal onClose={() => setShowBlockModal(false)}>
-                  <div className="p-6">
-                    <h2 className="text-lg font-bold mb-4">Блокування користувача</h2>
-                    <p>Ви впевнені, що хочете заблокувати користувача <b>{selectedUser.username}</b>?</p>
-                    <div className="flex gap-4 mt-6">
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleBlockUser(selectedUser.id)}
-                      >
-                        Так, заблокувати
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowBlockModal(false)}>
-                        Відмінити
-                      </Button>
-                    </div>
+              {/* Модальне вікно блокування/розблокування */}
+              <Modal 
+                open={showBlockModal} 
+                onClose={() => {
+                  setShowBlockModal(false);
+                  setSelectedUser(null);
+                }}
+              >
+                <div className="p-6">
+                  <h2 className="text-lg font-bold mb-4">
+                    {selectedUser?.is_blocked ? "Розблокування користувача" : "Блокування користувача"}
+                  </h2>
+                  <p className="mb-6">
+                    Ви впевнені, що хочете {selectedUser?.is_blocked ? "розблокувати" : "заблокувати"} користувача <b>{selectedUser?.username}</b>?
+                  </p>
+                  <div className="flex gap-4">
+                    <Button
+                      variant={selectedUser?.is_blocked ? "default" : "destructive"}
+                      onClick={() => {
+                        if (selectedUser?.is_blocked) {
+                          handleUnblockUser(selectedUser.id);
+                        } else {
+                          handleBlockUser(selectedUser.id);
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      {selectedUser?.is_blocked ? "Так, розблокувати" : "Так, заблокувати"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowBlockModal(false);
+                        setSelectedUser(null);
+                      }}
+                      disabled={loading}
+                    >
+                      Відмінити
+                    </Button>
                   </div>
-                </Modal>
-              )}
+                </div>
+              </Modal>
+
+              {/* Модальне вікно видалення */}
+              <Modal 
+                open={showDeleteModal} 
+                onClose={() => {
+                  setShowDeleteModal(false);
+                  setSelectedItem(null);
+                  setDeleteType("");
+                }}
+              >
+                <div className="p-6">
+                  <h2 className="text-lg font-bold mb-4">
+                    Видалення {deleteType === "tournament" ? "турніру" : "команди"}
+                  </h2>
+                  <p className="mb-6">
+                    Ви впевнені, що хочете видалити {deleteType === "tournament" ? "турнір" : "команду"} <b>{selectedItem?.name || selectedItem?.teamName}</b>? 
+                    Цю дію неможливо відмінити.
+                  </p>
+                  <div className="flex gap-4">
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        if (deleteType === "tournament") {
+                          handleDeleteTournament(selectedItem.id);
+                        } else if (deleteType === "team") {
+                          handleDeleteTeam(selectedItem.id);
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      Так, видалити
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowDeleteModal(false);
+                        setSelectedItem(null);
+                        setDeleteType("");
+                      }}
+                      disabled={loading}
+                    >
+                      Відмінити
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
             </div>
           )}
-          {activeTab === "teams" && (
+          {!loading && activeTab === "teams" && (
             <div className="bg-card/30 backdrop-blur-md border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
@@ -389,16 +676,28 @@ const AdminPanel = () => {
                 <TableBody>
                   {filteredTeams.length > 0 ? (
                     filteredTeams.map((team) => (
-                      <TableRow key={team.teamId}>
+                      <TableRow key={team.id}>
                         <TableCell>{team.teamName}</TableCell>
                         <TableCell>
                           {team.members?.find((m) => m.role === "Капітан")?.name || "—"}
                         </TableCell>
                         <TableCell>{team.members?.length || 0}</TableCell>
                         <TableCell>{new Date(team.created_at).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right flex gap-2 justify-end">
                           <Button variant="outline" size="sm">
                             Edit
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedItem(team);
+                              setDeleteType("team");
+                              setShowDeleteModal(true);
+                            }}
+                            disabled={loading}
+                          >
+                            Delete
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -414,7 +713,7 @@ const AdminPanel = () => {
               </Table>
             </div>
           )}
-          {activeTab === "stats" && (
+          {!loading && activeTab === "stats" && (
             <div className="bg-card/30 backdrop-blur-md border border-border rounded-lg p-8">
               <h2 className="text-2xl font-bold mb-6">Статистика</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

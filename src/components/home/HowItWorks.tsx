@@ -1,10 +1,24 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { UserPlus, Users, Trophy, Award, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BlurCard from "@/components/ui/blur-card";
 
 const HowItWorks = () => {
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Якщо користувач авторизований - переходимо на сторінку команд
+      navigate("/teams");
+    } else {
+      // Якщо не авторизований - переходимо на реєстрацію
+      navigate("/login?register=1");
+    }
+  };
+
   const steps = [
     {
       icon: <UserPlus className="h-6 w-6 text-esports-purple" />,
@@ -71,7 +85,11 @@ const HowItWorks = () => {
         </div>
 
         <div className="text-center">
-          <Button size="lg" className="bg-gradient-to-r from-esports-purple to-esports-blue hover:opacity-90 transition-opacity">
+          <Button 
+            size="lg" 
+            className="bg-gradient-to-r from-esports-purple to-esports-blue hover:opacity-90 transition-opacity"
+            onClick={handleGetStarted}
+          >
             Get Started Now <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

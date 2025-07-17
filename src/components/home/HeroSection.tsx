@@ -1,10 +1,21 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Trophy, Users, Award } from "lucide-react";
 import BlurCard from "@/components/ui/blur-card";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+
+  const handleCreateAccount = () => {
+    navigate("/login?register=1");
+  };
+
+  const handleBrowseTournaments = () => {
+    navigate("/tournaments");
+  };
+
   return (
     <section className="relative pt-32 pb-20 overflow-hidden">
       {/* Background effects */}
@@ -29,10 +40,18 @@ const HeroSection = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 mb-16 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            <Button size="lg" className="bg-gradient-to-r from-esports-purple to-esports-blue hover:opacity-90 transition-opacity">
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-esports-purple to-esports-blue hover:opacity-90 transition-opacity"
+              onClick={handleCreateAccount}
+            >
               Create Account <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline">
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={handleBrowseTournaments}
+            >
               Browse Tournaments
             </Button>
           </div>
