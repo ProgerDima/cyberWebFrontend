@@ -34,9 +34,11 @@ const AdminPanel = () => {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState(""); // "edit", "create"
+  const [deleteType, setDeleteType] = useState(""); // "tournament", "team", "user"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
